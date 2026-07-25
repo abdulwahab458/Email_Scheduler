@@ -10,9 +10,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
-  secondary: 'bg-white border border-slate-300 text-slate-800 hover:bg-slate-50',
-  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
+  primary:
+    'bg-violet-600 text-white shadow-lg shadow-violet-900/40 hover:bg-violet-500 active:scale-[0.98]',
+  secondary:
+    'border border-white/10 bg-zinc-800/80 text-zinc-100 hover:border-white/20 hover:bg-zinc-800',
+  ghost: 'bg-transparent text-zinc-300 hover:bg-white/5 hover:text-white',
 };
 
 export function Button({
@@ -27,7 +29,7 @@ export function Button({
     <button
       type="button"
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-50 ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? <Spinner size="sm" /> : null}

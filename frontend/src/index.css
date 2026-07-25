@@ -1,7 +1,70 @@
 @import 'tailwindcss';
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  @apply bg-slate-50 text-slate-900 antialiased;
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    @apply bg-zinc-950 text-zinc-100 antialiased;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    @apply bg-violet-500/40 text-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-zinc-950;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-zinc-700;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative min-h-screen overflow-hidden bg-zinc-950;
+  }
+
+  .app-glow {
+    @apply pointer-events-none absolute rounded-full blur-3xl opacity-40;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-white/[0.08] bg-zinc-900/70 shadow-xl shadow-black/40 backdrop-blur-md;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-white/10 bg-zinc-950/90 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/25 disabled:opacity-50;
+  }
+
+  .label-text {
+    @apply text-sm font-medium text-zinc-300;
+  }
+
+  input[type='datetime-local'],
+  input[type='file'] {
+    color-scheme: dark;
+  }
+}
+
+.Toastify__toast-theme--dark {
+  @apply border border-white/10 bg-zinc-900 text-zinc-100;
 }

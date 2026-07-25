@@ -25,7 +25,7 @@ export function Table<T>({
 }: TableProps<T>) {
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
+      <div className="surface-card flex justify-center py-16">
         <Spinner />
       </div>
     );
@@ -36,31 +36,33 @@ export function Table<T>({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-slate-50 text-slate-600">
-          <tr>
-            {columns.map((col) => (
-              <th key={String(col.key)} className="px-4 py-3 font-medium">
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={rowKey(row)} className="border-t border-slate-100">
+    <div className="surface-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-zinc-400">
               {columns.map((col) => (
-                <td key={String(col.key)} className="px-4 py-3">
-                  {col.render
-                    ? col.render(row)
-                    : String((row as Record<string, unknown>)[col.key as string] ?? '')}
-                </td>
+                <th key={String(col.key)} className="px-5 py-3.5 font-semibold">
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-white/[0.06]">
+            {rows.map((row) => (
+              <tr key={rowKey(row)} className="transition-colors hover:bg-white/[0.03]">
+                {columns.map((col) => (
+                  <td key={String(col.key)} className="px-5 py-4 text-zinc-300">
+                    {col.render
+                      ? col.render(row)
+                      : String((row as Record<string, unknown>)[col.key as string] ?? '')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

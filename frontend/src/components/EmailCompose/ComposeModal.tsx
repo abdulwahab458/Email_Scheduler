@@ -41,7 +41,7 @@ export function ComposeModal({ open, onClose, onScheduled }: ComposeModalProps) 
       });
       onScheduled();
       onClose();
-      toast.success("An Email has been scheduled")
+      toast.success('Email batch scheduled successfully');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to schedule emails');
     } finally {
@@ -51,20 +51,18 @@ export function ComposeModal({ open, onClose, onScheduled }: ComposeModalProps) 
 
   return (
     <Modal open={open} title="Compose email batch" onClose={onClose}>
-      <div className="space-y-4">
+      <div className="space-y-5">
         <Input label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium text-slate-700">Body </span>
+        <label className="block space-y-1.5 text-sm">
+          <span className="label-text">Body (HTML)</span>
           <textarea
-            className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="input-field min-h-36 resize-y font-mono text-xs leading-relaxed"
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            placeholder="<p>Hello...</p>"
           />
         </label>
-        <RecipientUpload
-          onUpload={parseCsv}
-          onParsed={(list) => setRecipients(list)}
-        />
+        <RecipientUpload onUpload={parseCsv} onParsed={(list) => setRecipients(list)} />
         <ScheduleForm
           scheduledAt={scheduledAt}
           delayMs={delayMs}
@@ -73,8 +71,12 @@ export function ComposeModal({ open, onClose, onScheduled }: ComposeModalProps) 
           onDelayChange={setDelayMs}
           onMaxPerHourChange={setMaxPerHour}
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        <div className="flex justify-end gap-2">
+        {error ? (
+          <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>

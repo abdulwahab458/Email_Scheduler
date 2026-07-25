@@ -26,7 +26,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+      <ToastContainer position="top-right" autoClose={3000} theme="dark" />
     </>
   );
 }
