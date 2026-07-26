@@ -45,6 +45,13 @@ export function startEmailWorker(): Worker<ScheduleEmailJobData> {
 
 
       try {
+        console.log("Step 1: Before verify");
+
+        await transport.verify();
+    
+        console.log("Step 2: Verify successful");
+    
+        console.log("Step 3: Before sendMail");
         const info = await transport.sendMail({
           from: record.sender_email,
           to: record.recipient_email,
