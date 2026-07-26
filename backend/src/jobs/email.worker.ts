@@ -40,6 +40,9 @@ export function startEmailWorker(): Worker<ScheduleEmailJobData> {
       }
 
       const transport = createTransport(sender);
+      console.log("SMTP Host:", sender.smtp_host);
+      console.log("SMTP Port:", sender.smtp_port);
+
 
       try {
         const info = await transport.sendMail({

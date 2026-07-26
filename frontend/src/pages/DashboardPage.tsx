@@ -42,6 +42,13 @@ export function DashboardPage() {
     error,
     reloadScheduled,
     reloadSent,
+    scheduledPage,
+    scheduledTotal,
+    sentPage,
+    sentTotal,
+    limit,
+    goToScheduledPage,
+    goToSentPage,
   } = useEmails();
 
   const sentCount = useMemo(() => sent.filter((e) => e.status === 'sent').length, [sent]);
@@ -102,9 +109,23 @@ export function DashboardPage() {
         ) : null}
 
         {activeTab === 'scheduled' ? (
-          <ScheduledTable rows={scheduled} loading={loadingScheduled} />
+          <ScheduledTable
+            rows={scheduled}
+            loading={loadingScheduled}
+            page={scheduledPage}
+            total={scheduledTotal}
+            limit={limit}
+            onPageChange={goToScheduledPage}
+          />
         ) : (
-          <SentTable rows={sent} loading={loadingSent} />
+          <SentTable
+            rows={sent}
+            loading={loadingSent}
+            page={sentPage}
+            total={sentTotal}
+            limit={limit}
+            onPageChange={goToSentPage}
+          />
         )}
       </DashboardLayout>
 
