@@ -1,346 +1,241 @@
 # Email Scheduler
 
-A full-stack email scheduling system that allows users to authenticate with Google, upload recipient lists, schedule emails for future delivery, and monitor scheduled and sent emails. The backend is built with Express, TypeScript, BullMQ, Redis, PostgreSQL, and Sequelize, while the frontend is built with React and TypeScript.
+A full-stack email scheduling platform that lets authenticated users upload recipient lists, queue bulk emails for future delivery, and track scheduled/sent/failed status from a dashboard.
 
----
+This repository contains:
+- **`backend/`**: Express + TypeScript API, PostgreSQL models, BullMQ queue/worker, Redis-backed throttling.
+- **`frontend/`**: React + Vite dashboard with Google sign-in and email scheduling UI.
+- **`next-app/`**: separate starter React/Vite app scaffold (not part of the main scheduler flow).
 
-# Tech Stack
+## Overview
 
-## Backend
-- Express.js
-- TypeScript
-- PostgreSQL
-- Sequelize ORM
-- Redis
-- BullMQ
-- Google OAuth
-- JWT Authentication
-- Nodemailer
-- Ethereal Email
+Core workflow:
+1. User signs in with Google.
+2. Frontend sends Google ID token to backend.
+3. Backend issues JWT and protects email endpoints.
+4. User uploads CSV recipients and submits schedule details.
+5. Backend persists scheduled records in PostgreSQL.
+6. Jobs are queued in BullMQ (Redis) for delayed processing.
+7. Worker sends email via Nodemailer + Ethereal SMTP senders.
+8. Delivery results are stored and shown in dashboard tables.
 
-## Frontend
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- React Hook Form
-- Axios
+## Architecture
 
----
+```text
+Frontend (React/Vite)
+        |
+        v
+Express API (/api/auth, /api/emails)
+        |
+        +--> PostgreSQL (users, scheduled_emails, senders, email_log)
+        |
+        +--> Redis + BullMQ queue (delayed jobs)
+                         |
+                         v
+                    Worker process
+                         |
+                         v
+                 Nodemailer/Ethereal SMTP
+```
 
-# Backend Setup
+## Key Features
+
+### Backend
+- Google OAuth token verification + JWT auth.
+- CSV recipient parsing endpoint.
+- Batch scheduling with idempotency keys.
+- Delayed queue execution with BullMQ.
+- Redis-backed per-sender hourly rate limit.
+- Configurable inter-email delay and worker concurrency.
+- Recovery of pending scheduled jobs on restart.
+- Sent/failed logging with sender attribution.
+
+### Frontend
+- Google login flow.
+- Protected dashboard route.
+- Compose modal for subject/body/schedule configuration.
+- CSV upload + parsed recipient preview.
+- Scheduled and sent/failed paginated tables.
+- Toast notifications and loading/error states.
+
+## Tech Stack
+
+- **Backend**: Node.js, Express, TypeScript, Sequelize, PostgreSQL, Redis, BullMQ, Nodemailer, Google Auth Library, JWT.
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router, Axios, React Toastify.
+- **Dev Infra**: Docker Compose (Redis + PostgreSQL).
 
 ## Prerequisites
 
-- Node.js
-- PostgreSQL
-- Redis
-- Docker (optional, for Redis)
-
-## Installation
-
-```bash
-git clone <repository-url>
-
-cd backend
-
-npm install
-```
+- **Node.js** 20+ (recommended)
+- **npm**
+- **Docker + Docker Compose** (recommended for local Redis/PostgreSQL)
+  - or local Redis/PostgreSQL instances managed manually
 
 ## Environment Variables
 
-Create a `.env` file inside the backend directory.
+Create a root-level `.env` file (used by backend runtime and sequelize CLI):
 
-```env
-PORT=
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | No | `4000` | Backend API port |
+| `DATABASE_URL` | Yes | - | PostgreSQL connection string |
+| `REDIS_URL` | No | `redis://localhost:6379` | Redis connection string |
+| `GOOGLE_CLIENT_ID` | Yes | - | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Yes | - | Google OAuth client secret |
+| `JWT_SECRET` | Yes | - | JWT signing secret |
+| `JWT_EXPIRES_IN` | Yes | - | JWT expiry (for example `7d`) |
+| `MAX_EMAILS_PER_HOUR` | No | `200` | Sender hourly throttle |
+| `MIN_DELAY_BETWEEN_EMAILS_MS` | No | `2000` | Minimum delay between sends |
+| `WORKER_CONCURRENCY` | No | `5` | BullMQ worker concurrency |
 
-DATABASE_URL=
+Create `frontend/.env`:
 
-REDIS_URL=
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_BACKEND_URL` | Yes | API base URL (for example `http://localhost:4000`) |
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Same OAuth client ID used by backend |
 
-GOOGLE_CLIENT_ID=
+> Do not commit `.env` files or real secrets.
 
-GOOGLE_CLIENT_SECRET=
+## Setup
 
-JWT_SECRET=
+### 1) Clone and install dependencies
 
-JWT_EXPIRES_IN=
+```bash
+git clone <repository-url>
+cd Email_Scheduler
 
-MAX_EMAILS_PER_HOUR=
-
-MIN_DELAY_BETWEEN_EMAILS_MS=
-
-WORKER_CONCURRENCY=
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-## Start Redis
+(Optional scaffold app)
+```bash
+cd ../next-app && npm install
+```
 
-Using Docker:
+### 2) Start infrastructure
+
+From repository root:
 
 ```bash
 docker compose up -d
 ```
 
-## Run Backend
+Services exposed:
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+
+### 3) Configure environment files
+
+- Add root `.env` (backend values).
+- Add `frontend/.env` (Vite values).
+
+## Local Development
+
+### Run backend
 
 ```bash
+cd backend
 npm run dev
 ```
 
-Starting the backend automatically:
+Backend startup behavior includes DB connection, sender bootstrap (Ethereal accounts), recovery of queued/scheduled jobs, and worker startup.
 
-- Connects to PostgreSQL
-- Connects to Redis
-- Creates the BullMQ worker
-- Restores pending scheduled emails
-- Starts the Express server
-
----
-
-# Frontend Setup
+### Run frontend
 
 ```bash
 cd frontend
-
-npm install
-```
-
-Create a `.env` file
-
-```env
-VITE_API_BASE_URL=http://localhost:4000/api
-
-VITE_GOOGLE_CLIENT_ID=<your-google-client-id>
-```
-
-Run the frontend
-
-```bash
 npm run dev
 ```
 
----
+Frontend default dev server runs on Vite's default port (usually `5173`).
 
-# Ethereal Email Setup
+## Scripts
 
-This project uses Ethereal Email for development and testing.
+### Backend (`backend/package.json`)
+- `npm run dev` — start API in watch mode (`tsx`).
+- `npm run build` — compile TypeScript to `dist/`.
+- `npm run start` — run compiled server.
+- `npm run migrate` / `npm run migrate:undo` — Sequelize migrations.
 
-1. Create an Ethereal account.
-2. Copy the generated SMTP credentials.
-3. Add them to the backend `.env` file.
+### Frontend (`frontend/package.json`)
+- `npm run dev` — start Vite dev server.
+- `npm run build` — type-check + production build.
+- `npm run lint` — run oxlint.
+- `npm run preview` — preview production build.
 
-Emails are delivered to Ethereal instead of a real inbox.
+### Next App (`next-app/package.json`)
+- Independent starter app scripts (`dev`, `build`, `lint`, `typecheck`, `format`, `preview`).
 
-For debugging, the worker logs an Ethereal Preview URL that can be opened in a browser to view the email.
+## API Surface (high level)
 
----
+- `POST /api/auth/google` — authenticate with Google ID token.
+- `POST /api/emails/parse-csv` — parse CSV recipients (auth required, file upload).
+- `POST /api/emails/schedule` — schedule batch emails (auth required).
+- `GET /api/emails/scheduled` — list scheduled/queued emails (auth required).
+- `GET /api/emails/sent` — list sent/failed emails (auth required).
+- `GET /health` — health endpoint.
 
-# Architecture Overview
+## Testing
 
-```
-React Frontend
-        │
-        ▼
-Express REST API
-        │
-        ▼
-Controllers
-        │
-        ▼
-Services
-        │
-        ▼
-PostgreSQL
-        │
-        ▼
-BullMQ Queue
-        │
-        ▼
-Redis
-        │
-        ▼
-BullMQ Worker
-        │
-        ▼
-Nodemailer
-        │
-        ▼
-Ethereal SMTP
+There are currently **no automated test scripts** configured in package manifests. For now, validate changes with:
+- frontend lint/build
+- backend TypeScript build
+- manual smoke checks of login, CSV parse, scheduling, and worker delivery
+
+## Build & Deployment Notes
+
+### Production build
+
+```bash
+cd backend && npm run build
+cd ../frontend && npm run build
 ```
 
----
+### Runtime requirements
+- PostgreSQL and Redis must be reachable from backend.
+- Set production-grade `JWT_SECRET` and OAuth credentials.
+- Run backend using compiled output (`npm run start` in `backend/`).
+- Serve frontend static build output from your preferred host/CDN.
 
-# Scheduling Workflow
+## Project Structure
 
-1. User logs in using Google OAuth.
-2. User uploads a CSV containing recipient email addresses.
-3. User enters the email subject, body, start time, delay, and hourly limit.
-4. The backend creates a Scheduled Email record for each recipient.
-5. Each email is added to BullMQ as a delayed job.
-6. BullMQ automatically executes jobs at the scheduled time.
-7. The worker sends the email using Nodemailer.
-8. The email status is updated and an Email Log entry is created.
-
----
-
-# Persistence After Restart
-
-The system is designed to survive application restarts.
-
-During startup:
-
-- Database connection is established.
-- Redis connection is restored.
-- Pending scheduled emails are recovered.
-- Missing delayed jobs are re-queued.
-- Future emails continue processing without user intervention.
-
-This ensures scheduled emails are not lost after restarting the application.
-
----
-
-# Rate Limiting
-
-The system enforces a configurable hourly sending limit.
-
-- Configurable using environment variables.
-- Redis-backed counters ensure consistency across multiple workers.
-- When the hourly limit is exceeded:
-  - Emails are not dropped.
-  - Emails are not permanently failed.
-  - Jobs are delayed and rescheduled into the next available time window.
-
-This satisfies the assignment requirement for persistent distributed rate limiting.
-
----
-
-# Worker Concurrency
-
-BullMQ workers support configurable concurrency.
-
-```env
-WORKER_CONCURRENCY=5
+```text
+.
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── jobs/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── queues/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── types/
+│   │   └── utils/
+│   └── migrations/
+├── frontend/
+│   └── src/
+│       ├── components/
+│       ├── hooks/
+│       ├── pages/
+│       ├── services/
+│       ├── store/
+│       └── types/
+├── next-app/
+├── docker-compose.yml
+└── README.md
 ```
 
-The worker processes multiple jobs concurrently while respecting the configured rate limit.
+## Contributing
 
----
+1. Fork the repository.
+2. Create a feature branch.
+3. Make focused changes and verify builds/linting.
+4. Open a pull request with a clear summary.
 
-# Delay Between Emails
+## License
 
-A configurable delay is enforced between consecutive email sends.
-
-```env
-MIN_DELAY_BETWEEN_EMAILS_MS=2000
-```
-
-BullMQ's limiter ensures emails are not sent faster than the configured rate.
-
----
-
-# Idempotency
-
-To prevent duplicate email delivery:
-
-- Sent emails are marked with status `sent`.
-- Before sending, the worker verifies that the email has not already been processed.
-- Duplicate jobs are ignored.
-
-This guarantees that the same scheduled email is never sent more than once.
-
----
-
-# Backend Features
-
-- Google OAuth Authentication
-- JWT Authentication
-- Email Scheduling
-- Delayed Jobs using BullMQ
-- Redis Queue
-- Worker Concurrency
-- Configurable Delay Between Emails
-- Redis-backed Hourly Rate Limiting
-- Automatic Recovery After Restart
-- Idempotent Email Processing
-- Scheduled Emails API
-- Sent Emails API
-- CSV Upload & Parsing
-- Email Logging
-- Multiple Sender Support
-
----
-
-# Frontend Features
-
-- Google Login
-- Protected Routes
-- Dashboard
-- User Profile Header
-- Logout
-- Compose Email
-- CSV Upload
-- Recipient Count Preview
-- Configure Start Time
-- Configure Delay
-- Configure Hourly Limit
-- Scheduled Emails Table
-- Sent Emails Table
-- Loading States
-- Empty States
-- Error Handling
-- Responsive UI
-
----
-
-# Project Structure
-
-## Backend
-
-```
-backend/
-│
-├── src/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── queues/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── workers/
-│   └── app.ts
-```
-
-## Frontend
-
-```
-frontend/
-│
-├── src/
-│   ├── api/
-│   ├── components/
-│   ├── hooks/
-│   ├── pages/
-│   ├── routes/
-│   ├── services/
-│   ├── types/
-│   └── App.tsx
-```
-
----
-
-# Assumptions
-
-- Ethereal Email is used for development.
-- PostgreSQL is used as the primary database.
-- Redis stores BullMQ queues and rate-limiting counters.
-- Google OAuth is used for authentication.
-- CSV files contain valid email addresses.
-
----
-
-- Restart persistence
-- Rate limiting behavior
-- Worker processing
+No license file is currently present in this repository. Add a `LICENSE` file to define usage terms.
